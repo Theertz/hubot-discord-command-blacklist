@@ -24,17 +24,20 @@ Then add **hubot-command-blacklist** to your `external-scripts.json`:
 
 ## Commands
 
-`hubot enable <commandId>` - enables the command with a given commandId in your
+| Command | Listener Id | Description|
+|:---| :---: | ---:|
+`hubot enable <commandId>` | `room.enable` | Enable the command with a given commandId in your
 current room.
-`hubot enable all` - enables all commands in the current room
-`hubot disable <commandId>` - disables the command with a given commandId in your
+`hubot enable all` | `room.enable` | Enable all commands in the current room
+`hubot disable <commandId>` | `room.disable` | Disable the command with a given commandId in your
 current room.
-`hubot disable all` - disables all commands except for this packages command and any commands you've listed as `HUBOT_DEFAULT_COMMANDS`
-`hubot list commands` - will list all the commandIds split into categories: enabled commands and disabled commands
+`hubot disable all` | `room.enable` | Disable all commands except for this packages command and any commands you've listed as `HUBOT_DEFAULT_COMMANDS`
+`hubot list commands` | `room.list-commands` | Lists list all the commandIds split into categories: enabled commands and disabled commands
+`hubot toggle respond` | `room.toggle-response` | Toggle whether or not responses will be sent in this room for these commands. (Defaults to false)
+`hubot toggle override` | `room.toggle-override` | Toggles whether or not admin users can override and send commands that are otherwise disabled.
 
 ## Notes
 
-If you are using [hubot-auth](https://github.com/hubot-scripts/hubot-auth),
-anyone who is `admin` or anyone with role `[room-name]-admin` can run these commands. If you aren't using hubot-auth, then anyone can run them.
+This will only allow people with the `managePermissions` permission to disable or enable the command.
 
 If your listener doesn't have an id set using listener metadata you won't be able to disable that command.

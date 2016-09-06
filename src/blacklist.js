@@ -1,26 +1,23 @@
-/* 
-  Description:
-   Sets the permissions for commands in a room
-
- Configuration:
-   HUBOT_DEFAULT_COMMANDS - comma seperated list of command ids that can't be disabled.
-
- Commands:
-   hubot enable/disable <commandId> - Enable/disable this command in the current room
-   hubot enable/disable all - Enable/disable all commands in the current room
-   hubot list commands - Displays all commands for a room sorted into enabled and disabled
-
- Author:
-   Kristen Mills <kristen@kristen-mills.com>
-*/
-
-var silentMode = process.env.HUBOT_BLACKLIST_SILENCE_RESPONSES || false;
-
+//  Description:
+//   Sets the permissions for commands in a room
+//
+// Configuration:
+//   HUBOT_DEFAULT_COMMANDS - comma seperated list of command ids that can't be disabled.
+//
+// Commands:
+//   hubot enable/disable <commandId> - Enable/disable this command in the current room
+//   hubot enable/disable all - Enable/disable all commands in the current room
+//   hubot list commands - Displays all commands for a room sorted into enabled and disabled
+//
+// Author:
+//   Matej Voboril <matej@voboril.org>
+     
 module.exports = function(robot) {
-  var defaults = ['room.enable', 'room.list-commands', 'room.disable'];
+  var defaults = ['room.enable', 'room.list-commands', 'room.disable', 'room.toggle-reponse', 'room.toggle-override'];
   if(process.env.HUBOT_DEFAULT_COMMANDS){
     var split = process.env.HUBOT_DEFAULT_COMMANDS.split(',');
     robot.brain.set('data.defaultCommands', split);
+    defaults = defaults.concat(split);
   } else {
     robot.brain.set('data.defaultCommands', defaults);
   }
@@ -29,9 +26,9 @@ module.exports = function(robot) {
     var room = msg.message.room;
     var user = msg.envelope.user;
     var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
+    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
     if(userPerms.hasPermission("managePermissions")) {
       var commandId = msg.match[1];
-
       var commandBlacklists = robot.brain.get('data.commandBlacklists'+room) || [];
       var index = commandBlacklists.indexOf(commandId);
       var commands = robot.listeners.reduce(function(prev, l){
@@ -44,35 +41,29 @@ module.exports = function(robot) {
       if(commandId === 'all'){
         commandBlacklists = [];
         robot.brain.set('data.commandBlacklists'+room, commandBlacklists);
-        if(!silentMode)
-          msg.send('All commands enabled in ' + room);
+        if(respondInChannel){msg.send('All commands enabled in <#' + room + ">");} else {robot.logger.debug('All commands enabled in <#' + room + ">");}
       } else if(commands.indexOf(commandId) === -1){
-        if(!silentMode)
-          msg.send(commandId + " is not an available command.  run `list commands` to see the list.");
+        if(respondInChannel){ msg.send(commandId + " is not an available command.  run `list commands` to see the list.");}
       } else if(index === -1){
-        if(!silentMode)
-          msg.send(commandId + " is already enabled in " + room);
+        if(respondInChannel){msg.send(commandId + " is already enabled in <#" + room + ">");} 
       } else {
         commandBlacklists.splice(index, 1);
         robot.brain.set('data.commandBlacklists'+room, commandBlacklists)
-        if(!silentMode)
-          msg.send(commandId + " is enabled in " + room);
+        if(respondInChannel){msg.send(commandId + " is enabled in <#" + room + ">");} else {robot.logger.debug(commandId + " is enabled in <#" + room + ">");}
       }
     } else {
-      if(!silentMode)
-        msg.send("Only admins can enable commands");
+      if(respondInChannel)
+        msg.send("Only users with 'managePermissions' can enable commands");
     }
   });
 
   robot.respond(/disable (.*)/i, {id: 'room.disable'}, function(msg) {
-    //console.log(robot)
     var room = msg.message.room;
     var user = msg.envelope.user;
     var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
+    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
     if(userPerms.hasPermission("managePermissions")) {
       var commandId = msg.match[1];
-      var room = msg.message.room;
-
       var commandBlacklists = robot.brain.get('data.commandBlacklists'+room) || [];
       var index = commandBlacklists.indexOf(commandId);
       var commands = robot.listeners.reduce(function(prev, l){
@@ -85,37 +76,42 @@ module.exports = function(robot) {
       if(commandId === 'all'){
         commandBlacklists = commands;
         robot.brain.set('data.commandBlacklists'+room, commandBlacklists);
-        if(!silentMode)
-          msg.send('All commands disabled in ' + room);
+        if(respondInChannel){
+          msg.send('All commands disabled in <#' + room + ">");
+        } else {
+          robot.logger.debug('All commands disabled in <#' + room + ">");
+        }
       } else if(index !== -1){
-        if(!silentMode)
+        if(respondInChannel)
           msg.send(commandId + " is already disabled in " + room);
       } else if(defaults.indexOf(commandId) !== -1){
-        if(!silentMode)
+        if(respondInChannel)
           msg.send("Why on earth would you want to disable this command? Stahp.")
       } else if(commands.indexOf(commandId) === -1) {
-        if(!silentMode)
+        if(respondInChannel)
           msg.send(commandId + " is not an available command.  run `list commands` to see the list.");
       } else {
         commandBlacklists.push(commandId);
         robot.brain.set('data.commandBlacklists'+room, commandBlacklists)
-        if(!silentMode)
-          msg.send(commandId + " is disabled in " + room);
+        if(respondInChannel){
+          msg.send(commandId + " is disabled in <#" + room + ">");
+        } else {
+          robot.logger.debug(commandId + " is disabled in <#" + room + ">");
+        }
       }
     } else {
-      if(!silentMode)
-        msg.send("Only admins can disable commands");
+      if(respondInChannel)
+        msg.send("Only users with 'managePermissions' can disable commands.");
     }
   });
 
-  robot.respond(/list commands/i, {id: 'room.list-commands'}, function(msg) {
+  robot.respond(/list\s?commands?/i, {id: 'room.list-commands'}, function(msg) {
     var room = msg.message.room;
-
-    var commandBlacklists = robot.brain.data.commandBlacklists || {};
+    var commandBlacklists = robot.brain.get('data.commandBlacklists'+room) || [];
+    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
     var disabled = commandBlacklists[room] || [];
-
     var enabled = robot.listeners.reduce(function(prev, listener){
-      if(disabled.indexOf(listener.options.id) == -1){
+      if(disabled.indexOf(listener.options.id) === -1){
         if(listener.options.id) {
           prev.push(listener.options.id);
         }
@@ -123,12 +119,51 @@ module.exports = function(robot) {
       return prev;
     }, []);
 
-    var message = "*Enabled Commands in " + room + "*\n";
+    var message = "*Enabled Commands in <#" + room + ">*\n";
     message += enabled.join('\n');
-    message += "\n\n*Disabled Commands in " + room + "*\n";
+    message += "\n\n*Disabled Commands in <#" + room + ">*\n";
     message += disabled.join('\n');
 
-    if(!silentMode)
+    if(respondInChannel)
       msg.send(message);
+  });
+  
+  robot.respond(/toggle\s?Response/i, {id: 'room.toggle-reponse'}, function(msg) {
+    var room = msg.message.room;
+    var user = msg.envelope.user;
+    var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
+    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
+
+    if(userPerms.hasPermission("managePermissions")) {
+      robot.brain.set('data.commandBlacklists'+room+'.replyInRoom', !respondInChannel);
+      if(respondInChannel){
+        var respondSettingStr = + !respondInChannel ? "on" : "off";
+        msg.send("Responding is now "+ respondSettingStr +" in <#" + room+">")
+      }
+    } else {
+      if(respondInChannel){
+        msg.send("Only users with 'managePermissions' can toggle responding in channel")
+      }
+    }
+  });
+  
+  robot.respond(/toggle\s?override/i, {id: 'room.toggle-override'}, function(msg) {
+    var room = msg.message.room;
+    var user = msg.envelope.user;
+    var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
+    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
+    var override = robot.brain.get('data.commandBlacklists'+room+'.override') || false;
+   
+    if(userPerms.hasPermission("managePermissions")) {
+      robot.brain.set('data.commandBlacklists'+room+'.override', !override);
+      if(respondInChannel){
+         var overrideSettingString = + !override ? "on" : "off";
+        msg.send("Override is now "+ overrideSettingString +" in <#" + room+">")
+      }
+    } else {
+      if(respondInChannel){
+        msg.send("Only users with 'managePermissions' can toggle override in <#" + room+">")
+      }
+    }
   });
 }
