@@ -1,4 +1,4 @@
-# hubot-command-blacklist
+# hubot-discord-command-blacklist
 
 Middleware and commands for blacklisting specific commands in certain rooms or
 channels
@@ -7,13 +7,13 @@ channels
 
 In hubot project repo, run:
 
-`npm install hubot-command-blacklist --save`
+`npm install hubot-discord-command-blacklist --save`
 
 Then add **hubot-command-blacklist** to your `external-scripts.json`:
 
 ```json
 [
-  "hubot-command-blacklist"
+  "hubot-discord-command-blacklist"
 ]
 ```
 
