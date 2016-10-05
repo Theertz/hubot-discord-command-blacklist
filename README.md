@@ -1,4 +1,4 @@
-# hubot-command-blacklist
+# hubot-discord-command-blacklist
 
 Middleware and commands for blacklisting specific commands in certain rooms or
 channels
@@ -7,13 +7,13 @@ channels
 
 In hubot project repo, run:
 
-`npm install hubot-command-blacklist --save`
+`npm install hubot-discord-command-blacklist --save`
 
 Then add **hubot-command-blacklist** to your `external-scripts.json`:
 
 ```json
 [
-  "hubot-command-blacklist"
+  "hubot-discord-command-blacklist"
 ]
 ```
 
@@ -26,11 +26,9 @@ Then add **hubot-command-blacklist** to your `external-scripts.json`:
 
 | Command | Listener Id | Description|
 |:---| :---: | ---:|
-`hubot enable <commandId>` | `room.enable` | Enable the command with a given commandId in your
-current room.
+`hubot enable <commandId>` | `room.enable` | Enable the command with a given commandId in your current room.
 `hubot enable all` | `room.enable` | Enable all commands in the current room
-`hubot disable <commandId>` | `room.disable` | Disable the command with a given commandId in your
-current room.
+`hubot disable <commandId>` | `room.disable` | Disable the command with a given commandId in your current room.
 `hubot disable all` | `room.enable` | Disable all commands except for this packages command and any commands you've listed as `HUBOT_DEFAULT_COMMANDS`
 `hubot list commands` | `room.list-commands` | Lists list all the commandIds split into categories: enabled commands and disabled commands
 `hubot toggle respond` | `room.toggle-response` | Toggle whether or not responses will be sent in this room for these commands. (Defaults to false)
