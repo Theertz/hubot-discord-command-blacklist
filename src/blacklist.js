@@ -3,17 +3,21 @@
 //
 // Configuration:
 //   HUBOT_DEFAULT_COMMANDS - comma seperated list of command ids that can't be disabled.
+//   HUBOT_OWNER - Id of the owner of the bot - allows full access to commands
 //
 // Commands:
 //   hubot enable/disable <commandId> - Enable/disable this command in the current room
 //   hubot enable/disable all - Enable/disable all commands in the current room
 //   hubot list commands - Displays all commands for a room sorted into enabled and disabled
+//   hubot toggle response - Toggle hubot responding in this channel to blacklist commands
+//   hubot toggle override - Toggel hubot allowing an admin user to override the blacklist and call commands that are disabled
 //
 // Author:
 //   Matej Voboril <matej@voboril.org>
      
 module.exports = function(robot) {
   var defaults = ['room.enable', 'room.list-commands', 'room.disable', 'room.toggle-reponse', 'room.toggle-override'];
+  var owner = process.env.HUBOT_OWNER || '';
   if(process.env.HUBOT_DEFAULT_COMMANDS){
     var split = process.env.HUBOT_DEFAULT_COMMANDS.split(',');
     robot.brain.set('data.defaultCommands', split);
@@ -27,7 +31,8 @@ module.exports = function(robot) {
     var user = msg.envelope.user;
     var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
     var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
-    if(userPerms.hasPermission("managePermissions")) {
+    var hasPermission = userPerms.hasPermission("managePermissions") ? true : user.id === owner;
+    if(hasPermission) {
       var commandId = msg.match[1];
       var commandBlacklists = robot.brain.get('data.commandBlacklists'+room) || [];
       var index = commandBlacklists.indexOf(commandId);
@@ -62,7 +67,8 @@ module.exports = function(robot) {
     var user = msg.envelope.user;
     var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
     var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
-    if(userPerms.hasPermission("managePermissions")) {
+    var hasPermission = userPerms.hasPermission("managePermissions") ? true : user.id === owner;
+    if(hasPermission) {
       var commandId = msg.match[1];
       var commandBlacklists = robot.brain.get('data.commandBlacklists'+room) || [];
       var index = commandBlacklists.indexOf(commandId);
@@ -134,7 +140,8 @@ module.exports = function(robot) {
     var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
     var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
 
-    if(userPerms.hasPermission("managePermissions")) {
+    var hasPermission = userPerms.hasPermission("managePermissions") ? true : user.id === owner;
+    if(hasPermission) {
       robot.brain.set('data.commandBlacklists'+room+'.replyInRoom', !respondInChannel);
       if(respondInChannel){
         var respondSettingStr = + !respondInChannel ? "on" : "off";
@@ -154,7 +161,8 @@ module.exports = function(robot) {
     var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
     var override = robot.brain.get('data.commandBlacklists'+room+'.override') || false;
    
-    if(userPerms.hasPermission("managePermissions")) {
+    var hasPermission = userPerms.hasPermission("managePermissions") ? true : user.id === owner;
+    if(hasPermission) {
       robot.brain.set('data.commandBlacklists'+room+'.override', !override);
       if(respondInChannel){
          var overrideSettingString = + !override ? "on" : "off";
