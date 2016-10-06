@@ -115,7 +115,7 @@ module.exports = function(robot) {
     var room = msg.message.room;
     var commandBlacklists = robot.brain.get('data.commandBlacklists'+room) || [];
     var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
-    var disabled = commandBlacklists[room] || [];
+    var disabled = commandBlacklist || [];
     var enabled = robot.listeners.reduce(function(prev, listener){
       if(disabled.indexOf(listener.options.id) === -1){
         if(listener.options.id) {
