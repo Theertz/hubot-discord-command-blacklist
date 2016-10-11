@@ -113,7 +113,7 @@ module.exports = function(robot) {
 
   robot.respond(/list\s?commands?/i, {id: 'room.list-commands'}, function(msg) {
     var room = msg.message.room;
-    var commandBlacklists = robot.brain.get('data.commandBlacklists'+room) || [];
+    var commandBlacklist = robot.brain.get('data.commandBlacklists'+room) || [];
     var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
     var disabled = commandBlacklist || [];
     var enabled = robot.listeners.reduce(function(prev, listener){
