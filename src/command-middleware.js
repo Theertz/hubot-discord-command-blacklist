@@ -11,26 +11,26 @@ module.exports = function (robot) {
   robot.listenerMiddleware(function (context, next, done) {
     if (context.response.message.text) {
       var id = context.listener.options.id;
-      var room = context.response.envelope.room;
-      var user = context.response.envelope.user;
+      var room = robot.client.channels.find('id', context.response.envelope.room);
+      var hubot_user = context.response.envelope.user;
       
-      var respondInChannel = robot.brain.get('data.commandBlacklists' + room + '.replyInRoom') || false;
-      var blacklist = robot.brain.get('data.commandBlacklists' + room) || [];
-      var override = robot.brain.get('data.commandBlacklists' + room + '.override') || false;
-      
-      var discRoom = robot.client.channels.get(room);
-      var discPermExists = discRoom != null ? discRoom.permissionsOf(user.id).hasPermission("managePermissions") : false;
-      var userIsOwner = user.id === owner;
-      var userHasPerm = discPermExists ? true : userIsOwner;
-
-      if (blacklist.indexOf(id) !== -1 && !(override && userHasPerm)) {
-        if (respondInChannel) {
-          context.response.send("Sorry,<@" + user.id + "> you aren't allowed to run that command in <#" + room + ">");
-        }
-        done();
-      } else {
-        next(done);
-      }
+      var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
+      var blacklist = robot.brain.get(`data.commandBlacklists${room.id}`) || [];
+      var override = robot.brain.get(`data.commandBlacklists${room.id}.override`) || false;
+      robot.client.fetchUser(hubot_user.id)
+        .then((user) =>{
+          var userHasPerm = room !== null ? room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS") : user.id === owner;
+        
+          if (blacklist.indexOf(id) !== -1 && !(override && userHasPerm)) {
+            if (respondInChannel) {
+              context.response.send(`Sorry, ${user.id} you aren't allowed to run that command in ${room}`);
+            }
+            done();
+          } else {
+            next(done);
+          }
+      })
+      .catch((error) => console.error(`${error}, command-middleware.js: line 33`));
     } else {
       next(done);
     }

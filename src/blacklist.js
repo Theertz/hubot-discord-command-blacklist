@@ -27,94 +27,111 @@ module.exports = function(robot) {
   }
 
   robot.respond(/enable (.*)/i, {id: 'room.enable'}, function(msg) {
-    var room = msg.message.room;
-    var user = msg.envelope.user;
-    var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
-    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
-    var hasPermission = userPerms.hasPermission("managePermissions") ? true : user.id === owner;
-    if(hasPermission) {
-      var commandId = msg.match[1];
-      var commandBlacklists = robot.brain.get('data.commandBlacklists'+room) || [];
-      var index = commandBlacklists.indexOf(commandId);
-      var commands = robot.listeners.reduce(function(prev, l){
-        if(l.options.id) {
-          prev.push(l.options.id);
-        }
-        return prev;
-      }, []);
+    var room = robot.client.channels.find('id', msg.message.room);
+    robot.client.fetchUser(msg.envelope.user.id)
+      .then((user) => {
+      var userHasPerm = room !== null ? 
+          room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS") : user.id === owner;
+      var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
+      if(userHasPerm) {
+        var commandId = msg.match[1];
+        var commandBlacklists = robot.brain.get(`data.commandBlacklists${room.id}`) || [];
+        var index = commandBlacklists.indexOf(commandId);
+        var commands = robot.listeners.reduce(function(prev, l){
+          if(l.options.id) {
+            prev.push(l.options.id);
+          }
+          return prev;
+        }, []);
 
-      if(commandId === 'all'){
-        commandBlacklists = [];
-        robot.brain.set('data.commandBlacklists'+room, commandBlacklists);
-        if(respondInChannel){msg.send('All commands enabled in <#' + room + ">");} else {robot.logger.debug('All commands enabled in <#' + room + ">");}
-      } else if(commands.indexOf(commandId) === -1){
-        if(respondInChannel){ msg.send(commandId + " is not an available command.  run `list commands` to see the list.");}
-      } else if(index === -1){
-        if(respondInChannel){msg.send(commandId + " is already enabled in <#" + room + ">");} 
+        if(commandId === 'all'){
+          commandBlacklists = [];
+          robot.brain.set(`data.commandBlacklists${room.id}`, commandBlacklists);
+          if(respondInChannel) {
+            msg.send(`All commands enabled in ${room}`);
+          } else {
+            robot.logger.debug(`All commands enabled in ${room}`);
+          }
+        } else if(commands.indexOf(commandId) === -1){
+          if(respondInChannel){
+            msg.send(`${commandId} is not an available command.  run \`list commands\` to see the list.`);
+          }
+        } else if(index === -1){
+          if(respondInChannel){msg.send(`${commandId} is already enabled in #{room}.`);} 
+        } else {
+          commandBlacklists.splice(index, 1);
+          robot.brain.set(`data.commandBlacklists${room.id}`, commandBlacklists)
+          if(respondInChannel){
+            msg.send(`${commandId} is enabled in ${room}.`);
+          } else {
+            robot.logger.debug(`${commandId} is enabled in ${room}.`);
+          }
+        }
       } else {
-        commandBlacklists.splice(index, 1);
-        robot.brain.set('data.commandBlacklists'+room, commandBlacklists)
-        if(respondInChannel){msg.send(commandId + " is enabled in <#" + room + ">");} else {robot.logger.debug(commandId + " is enabled in <#" + room + ">");}
+        if(respondInChannel)
+          msg.send("Only users with 'MANAGE_ROLES_OR_PERMISSIONS' can enable commands");
       }
-    } else {
-      if(respondInChannel)
-        msg.send("Only users with 'managePermissions' can enable commands");
-    }
+    })
+    .catch((error) => console.error(`${error}, blacklist.js: line 75`));
   });
 
   robot.respond(/disable (.*)/i, {id: 'room.disable'}, function(msg) {
-    var room = msg.message.room;
-    var user = msg.envelope.user;
-    var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
-    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
-    var hasPermission = userPerms.hasPermission("managePermissions") ? true : user.id === owner;
-    if(hasPermission) {
-      var commandId = msg.match[1];
-      var commandBlacklists = robot.brain.get('data.commandBlacklists'+room) || [];
-      var index = commandBlacklists.indexOf(commandId);
-      var commands = robot.listeners.reduce(function(prev, l){
-        if(l.options.id && defaults.indexOf(l.options.id) === -1) {
-          prev.push(l.options.id);
-        }
-        return prev;
-      }, []);
+    var room = robot.client.channels.find('id', msg.message.room);
+    robot.client.fetchUser(msg.envelope.user.id)
+      .then((user) => {
+      var userHasPerm = room !== null ? 
+          room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS") : user.id === owner;
+      var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
 
-      if(commandId === 'all'){
-        commandBlacklists = commands;
-        robot.brain.set('data.commandBlacklists'+room, commandBlacklists);
-        if(respondInChannel){
-          msg.send('All commands disabled in <#' + room + ">");
+      if(userHasPerm) {
+        var commandId = msg.match[1];
+        var commandBlacklists = robot.brain.get(`data.commandBlacklists${room.id}`) || [];
+        var index = commandBlacklists.indexOf(commandId);
+        var commands = robot.listeners.reduce(function(prev, l){
+          if(l.options.id && defaults.indexOf(l.options.id) === -1) {
+            prev.push(l.options.id);
+          }
+          return prev;
+        }, []);
+
+        if(commandId === 'all'){
+          commandBlacklists = commands;
+          robot.brain.set(`data.commandBlacklists${room.id}`, commandBlacklists);
+          if(respondInChannel){
+            msg.send(`All commands disabled in ${room}`);
+          } else {
+            robot.logger.debug(`All commands disabled in ${room}`);
+          }
+        } else if(index !== -1){
+          if(respondInChannel)
+            msg.send(`${commandId} is already disabled in ${room}`);
+        } else if(defaults.indexOf(commandId) !== -1){
+          if(respondInChannel)
+            msg.send("Why on earth would you want to disable this command? Stahp.")
+        } else if(commands.indexOf(commandId) === -1) {
+          if(respondInChannel)
+            msg.send(`${commandId} is not an available command.  run \`list commands\` to see the list.`);
         } else {
-          robot.logger.debug('All commands disabled in <#' + room + ">");
+          commandBlacklists.push(commandId);
+          robot.brain.set(`data.commandBlacklists${room.id}`, commandBlacklists)
+          if(respondInChannel){
+            msg.send(`${commandId} is disabled in ${room}`);
+          } else {
+            robot.logger.debug(`${commandId} is disabled in ${room}`);
+          }
         }
-      } else if(index !== -1){
-        if(respondInChannel)
-          msg.send(commandId + " is already disabled in " + room);
-      } else if(defaults.indexOf(commandId) !== -1){
-        if(respondInChannel)
-          msg.send("Why on earth would you want to disable this command? Stahp.")
-      } else if(commands.indexOf(commandId) === -1) {
-        if(respondInChannel)
-          msg.send(commandId + " is not an available command.  run `list commands` to see the list.");
       } else {
-        commandBlacklists.push(commandId);
-        robot.brain.set('data.commandBlacklists'+room, commandBlacklists)
-        if(respondInChannel){
-          msg.send(commandId + " is disabled in <#" + room + ">");
-        } else {
-          robot.logger.debug(commandId + " is disabled in <#" + room + ">");
-        }
+        if(respondInChannel)
+          msg.send("Only users with 'MANAGE_ROLES_OR_PERMISSIONS' can disable commands.");
       }
-    } else {
-      if(respondInChannel)
-        msg.send("Only users with 'managePermissions' can disable commands.");
-    }
+    })
+    .catch((error) => console.error(`${error}, blacklist.js: line 127`));
   });
 
   robot.respond(/list\s?commands?/i, {id: 'room.list-commands'}, function(msg) {
-    var room = msg.message.room;
-    var commandBlacklist = robot.brain.get('data.commandBlacklists'+room) || [];
-    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
+    var room = robot.client.channels.find('id', msg.message.room);
+    var commandBlacklist = robot.brain.get(`data.commandBlacklists${room.id}`) || [];
+    var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
     var disabled = commandBlacklist || [];
     var enabled = robot.listeners.reduce(function(prev, listener){
       if(disabled.indexOf(listener.options.id) === -1){
@@ -125,9 +142,9 @@ module.exports = function(robot) {
       return prev;
     }, []);
 
-    var message = "*Enabled Commands in <#" + room + ">*\n";
+    var message = `*Enabled Commands in ${room}*\n`;
     message += enabled.join('\n');
-    message += "\n\n*Disabled Commands in <#" + room + ">*\n";
+    message += `\n\n*Disabled Commands in ${room}*\n`;
     message += disabled.join('\n');
 
     if(respondInChannel)
@@ -135,43 +152,48 @@ module.exports = function(robot) {
   });
   
   robot.respond(/toggle\s?Response/i, {id: 'room.toggle-reponse'}, function(msg) {
-    var room = msg.message.room;
-    var user = msg.envelope.user;
-    var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
-    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
-
-    var hasPermission = userPerms.hasPermission("managePermissions") ? true : user.id === owner;
-    if(hasPermission) {
-      robot.brain.set('data.commandBlacklists'+room+'.replyInRoom', !respondInChannel);
-      if(respondInChannel){
-        var respondSettingStr = + !respondInChannel ? "on" : "off";
-        msg.send("Responding is now "+ respondSettingStr +" in <#" + room+">")
+    var room = robot.client.channels.find('id', msg.message.room);
+    robot.client.fetchUser(msg.envelope.user.id)
+      .then((user) => {
+      var userHasPerm = room !== null ? 
+          room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS") : user.id === owner;
+      var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
+      if(userHasPerm) {
+        robot.brain.set(`data.commandBlacklists${room.id}.replyInRoom`, !respondInChannel);
+        if(respondInChannel){
+          var respondSettingStr = + !respondInChannel ? "on" : "off";
+          msg.send(`Responding is now ${respondSettingStr} in  ${room}`)
+        }
+      } else {
+        if(respondInChannel){
+          msg.send(`Only users with 'MANAGE_ROLES_OR_PERMISSIONS' can toggle responding in  ${room}`)
+        }
       }
-    } else {
-      if(respondInChannel){
-        msg.send("Only users with 'managePermissions' can toggle responding in channel")
-      }
-    }
+    })
+    .catch((error) => console.error(`${error}, blacklist.js: line 172`));
   });
   
   robot.respond(/toggle\s?override/i, {id: 'room.toggle-override'}, function(msg) {
-    var room = msg.message.room;
-    var user = msg.envelope.user;
-    var userPerms = robot.client.channels.get(room).permissionsOf(user.id);
-    var respondInChannel = robot.brain.get('data.commandBlacklists'+room+'.replyInRoom') || false;
-    var override = robot.brain.get('data.commandBlacklists'+room+'.override') || false;
+    var room = robot.client.channels.find('id', msg.message.room);
+    robot.client.fetchUser(msg.envelope.user.id)
+      .then((user) => {
+      var userHasPerm = room !== null ? 
+          room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS") : user.id === owner;
+      var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
+      var override = robot.brain.get(`data.commandBlacklists${room.id}.override`) || false;
    
-    var hasPermission = userPerms.hasPermission("managePermissions") ? true : user.id === owner;
-    if(hasPermission) {
-      robot.brain.set('data.commandBlacklists'+room+'.override', !override);
-      if(respondInChannel){
-         var overrideSettingString = + !override ? "on" : "off";
-        msg.send("Override is now "+ overrideSettingString +" in <#" + room+">")
+      if(userHasPerm) {
+        robot.brain.set('data.commandBlacklists'+room+'.override', !override);
+        if(respondInChannel){
+           var overrideSettingString = + !override ? "on" : "off";
+          msg.send(`Override is now ${overrideSettingString} in ${room}.`)
+        }
+      } else {
+        if(respondInChannel){
+          msg.send(`Only users with 'MANAGE_ROLES_OR_PERMISSIONS' can toggle override in  ${room}`)
+        }
       }
-    } else {
-      if(respondInChannel){
-        msg.send("Only users with 'managePermissions' can toggle override in <#" + room+">")
-      }
-    }
+    })
+    .catch((error) => console.error(`${error}, blacklist.js: line 196`));
   });
 }
