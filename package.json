@@ -5,17 +5,17 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kristenmills/hubot-command-blacklist"
+    "url": "https://github.com/aliasfalse/hubot-discord-command-blacklist"
   },
   "keywords": [
     "hubot",
     "command-blacklist",
     "middleware"
   ],
-  "author": "Kristen Mills <kristen@kristen-mills.com>",
+  "author": "Matej Voboril <matej@voboril.org>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kristenmills/hubot-command-blacklist/issues"
+    "url": "https://github.com/aliasfalse/hubot-discord-command-blacklist/issues"
   },
-  "homepage": "https://github.com/kristenmills/hubot-command-blacklist"
+  "homepage": "https://github.com/aliasfalse/hubot-discord-command-blacklist"
 }
