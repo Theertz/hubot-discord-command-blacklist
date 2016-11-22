@@ -27,15 +27,18 @@ module.exports = function(robot) {
   }
 
   robot.respond(/enable (.*)/i, {id: 'room.enable'}, function(msg) {
-    var room = robot.client.channels.find('id', msg.message.room);
+    const room = robot.client.channels.find('id', msg.message.room);
     robot.client.fetchUser(msg.envelope.user.id)
       .then((user) => {
-      var userHasPerm = room !== null ? 
-          room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS") : user.id === owner;
-      var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
+      const userHasPerm = room !== null ? 
+          (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS")) 
+          || room.type  === 'dm' 
+          || user.id    === owner 
+           : user.id    === owner;
+      const respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
       if(userHasPerm) {
         var commandId = msg.match[1];
-        var commandBlacklists = robot.brain.get(`data.commandBlacklists${room.id}`) || [];
+        var commandBlacklists = robot.brain.get(`data.commandBlacklists${room.id}`) || user.id === owner || [];
         var index = commandBlacklists.indexOf(commandId);
         var commands = robot.listeners.reduce(function(prev, l){
           if(l.options.id) {
@@ -79,8 +82,11 @@ module.exports = function(robot) {
     var room = robot.client.channels.find('id', msg.message.room);
     robot.client.fetchUser(msg.envelope.user.id)
       .then((user) => {
-      var userHasPerm = room !== null ? 
-          room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS") : user.id === owner;
+      const userHasPerm = room !== null ? 
+          (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS")) 
+          || room.type  === 'dm' 
+          || user.id    === owner 
+           : user.id    === owner;
       var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
 
       if(userHasPerm) {
@@ -155,8 +161,11 @@ module.exports = function(robot) {
     var room = robot.client.channels.find('id', msg.message.room);
     robot.client.fetchUser(msg.envelope.user.id)
       .then((user) => {
-      var userHasPerm = room !== null ? 
-          room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS") : user.id === owner;
+      const userHasPerm = room !== null ? 
+          (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS")) 
+          || room.type  === 'dm' 
+          || user.id    === owner 
+           : user.id    === owner;
       var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
       if(userHasPerm) {
         robot.brain.set(`data.commandBlacklists${room.id}.replyInRoom`, !respondInChannel);
@@ -177,23 +186,29 @@ module.exports = function(robot) {
     var room = robot.client.channels.find('id', msg.message.room);
     robot.client.fetchUser(msg.envelope.user.id)
       .then((user) => {
-      var userHasPerm = room !== null ? 
-          room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS") : user.id === owner;
-      var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
-      var override = robot.brain.get(`data.commandBlacklists${room.id}.override`) || false;
-   
-      if(userHasPerm) {
-        robot.brain.set('data.commandBlacklists'+room+'.override', !override);
-        if(respondInChannel){
-           var overrideSettingString = + !override ? "on" : "off";
-          msg.send(`Override is now ${overrideSettingString} in ${room}.`)
+        const userIsOwner = user.id === owner;
+        const userHasPerm = room !== null ? 
+            (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS")) 
+            || room.type  === 'dm' 
+            || userIsOwner 
+             : false;
+        if(room !== null){
+          var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
+          var override = robot.brain.get(`data.commandBlacklists${room.id}.override`) || false;
+
+          if(userHasPerm || userIsOwner) {
+            robot.brain.set('data.commandBlacklists'+room+'.override', !override);
+            if(respondInChannel){
+               var overrideSettingString = + !override ? "on" : "off";
+              msg.send(`Override is now ${overrideSettingString} in ${room}.`)
+            }
+          } else {
+            if(respondInChannel){
+              msg.send(`Only users with 'MANAGE_ROLES_OR_PERMISSIONS' can toggle override in  ${room}`)
+            }
+          }
         }
-      } else {
-        if(respondInChannel){
-          msg.send(`Only users with 'MANAGE_ROLES_OR_PERMISSIONS' can toggle override in  ${room}`)
-        }
-      }
-    })
-    .catch((error) => console.error(`${error}, blacklist.js: line 196`));
+      })
+      .catch((error) => console.error(`${error}, blacklist.js: line 196`));
   });
 }
