@@ -15,12 +15,12 @@ module.exports = function (robot) {
       const respondInChannel  = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
       const blacklist         = robot.brain.get(`data.commandBlacklists${room.id}`) || [];
       const override          = robot.brain.get(`data.commandBlacklists${room.id}.override`) || false;
-      robot.client.fetchUser(hubot_user.id)
+      robot.client.users.get(hubot_user.id)
         .then((user) =>{
           const userIsOwner = user.id === owner;
-          const userHasPerm = room !== null ? 
-          (room.type    === 'text') 
-          || room.type  === 'dm' 
+          const userHasPerm = room !== null ?
+          (room.type    === 'text')
+          || room.type  === 'dm'
           || userIsOwner
            : userIsOwner;
           if ((blacklist.indexOf(id) !== -1 && !(override && userHasPerm)) && !userIsOwner) {

@@ -14,7 +14,7 @@
 //
 // Author:
 //   Matej Voboril <matej@voboril.org>
-     
+
 module.exports = function(robot) {
   var defaults = ['room.enable', 'room.list-commands', 'room.disable', 'room.toggle-reponse', 'room.toggle-override'];
   var owner = process.env.HUBOT_OWNER || '';
@@ -28,12 +28,12 @@ module.exports = function(robot) {
 
   robot.respond(/enable (.*)/i, {id: 'room.enable'}, function(msg) {
     const room = robot.client.channels.find('id', msg.message.room);
-    robot.client.fetchUser(msg.envelope.user.id)
+    robot.client.users.get(msg.envelope.user.id)
       .then((user) => {
-      const userHasPerm = room !== null ? 
-          (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS")) 
-          || room.type  === 'dm' 
-          || user.id    === owner 
+      const userHasPerm = room !== null ?
+          (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS"))
+          || room.type  === 'dm'
+          || user.id    === owner
            : user.id    === owner;
       const respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
       if(userHasPerm) {
@@ -60,7 +60,7 @@ module.exports = function(robot) {
             msg.send(`${commandId} is not an available command.  run \`list commands\` to see the list.`);
           }
         } else if(index === -1){
-          if(respondInChannel){msg.send(`${commandId} is already enabled in #{room}.`);} 
+          if(respondInChannel){msg.send(`${commandId} is already enabled in #{room}.`);}
         } else {
           commandBlacklists.splice(index, 1);
           robot.brain.set(`data.commandBlacklists${room.id}`, commandBlacklists)
@@ -80,12 +80,12 @@ module.exports = function(robot) {
 
   robot.respond(/disable (.*)/i, {id: 'room.disable'}, function(msg) {
     var room = robot.client.channels.find('id', msg.message.room);
-    robot.client.fetchUser(msg.envelope.user.id)
+    robot.client.users.get(msg.envelope.user.id)
       .then((user) => {
-      const userHasPerm = room !== null ? 
-          (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS")) 
-          || room.type  === 'dm' 
-          || user.id    === owner 
+      const userHasPerm = room !== null ?
+          (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS"))
+          || room.type  === 'dm'
+          || user.id    === owner
            : user.id    === owner;
       var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
 
@@ -156,15 +156,15 @@ module.exports = function(robot) {
     if(respondInChannel)
       msg.send(message);
   });
-  
+
   robot.respond(/toggle\s?Response/i, {id: 'room.toggle-reponse'}, function(msg) {
     var room = robot.client.channels.find('id', msg.message.room);
-    robot.client.fetchUser(msg.envelope.user.id)
+    robot.client.users.get(msg.envelope.user.id)
       .then((user) => {
-      const userHasPerm = room !== null ? 
-          (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS")) 
-          || room.type  === 'dm' 
-          || user.id    === owner 
+      const userHasPerm = room !== null ?
+          (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS"))
+          || room.type  === 'dm'
+          || user.id    === owner
            : user.id    === owner;
       var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
       if(userHasPerm) {
@@ -181,16 +181,16 @@ module.exports = function(robot) {
     })
     .catch((error) => console.error(`${error}, blacklist.js: line 172`));
   });
-  
+
   robot.respond(/toggle\s?override/i, {id: 'room.toggle-override'}, function(msg) {
     var room = robot.client.channels.find('id', msg.message.room);
-    robot.client.fetchUser(msg.envelope.user.id)
+    robot.client.users.get(msg.envelope.user.id)
       .then((user) => {
         const userIsOwner = user.id === owner;
-        const userHasPerm = room !== null ? 
-            (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS")) 
-            || room.type  === 'dm' 
-            || userIsOwner 
+        const userHasPerm = room !== null ?
+            (room.type    === 'text' && room.permissionsFor(user).hasPermission("MANAGE_ROLES_OR_PERMISSIONS"))
+            || room.type  === 'dm'
+            || userIsOwner
              : false;
         if(room !== null){
           var respondInChannel = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
