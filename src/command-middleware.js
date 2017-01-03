@@ -15,24 +15,21 @@ module.exports = function (robot) {
       const respondInChannel  = robot.brain.get(`data.commandBlacklists${room.id}.replyInRoom`) || false;
       const blacklist         = robot.brain.get(`data.commandBlacklists${room.id}`) || [];
       const override          = robot.brain.get(`data.commandBlacklists${room.id}.override`) || false;
-      robot.client.users.get(hubot_user.id)
-        .then((user) =>{
-          const userIsOwner = user.id === owner;
-          const userHasPerm = room !== null ?
-          (room.type    === 'text')
-          || room.type  === 'dm'
-          || userIsOwner
-           : userIsOwner;
-          if ((blacklist.indexOf(id) !== -1 && !(override && userHasPerm)) && !userIsOwner) {
-            if (respondInChannel) {
-              context.response.send(`Sorry, ${user} you aren't allowed to run that command in ${room}`);
-            }
-            done();
-          } else {
-            next(done);
-          }
-      })
-      .catch((error) => console.error(`${error}, command-middleware.js: line ${error.lineNumber}`));
+      const user              = robot.client.users.get(hubot_user.id);
+      const userIsOwner = user.id === owner;
+      const userHasPerm = room !== null ?
+      (room.type    === 'text')
+      || room.type  === 'dm'
+      || userIsOwner
+       : userIsOwner;
+      if ((blacklist.indexOf(id) !== -1 && !(override && userHasPerm)) && !userIsOwner) {
+        if (respondInChannel) {
+          context.response.send(`Sorry, ${user} you aren't allowed to run that command in ${room}`);
+        }
+        done();
+      } else {
+        next(done);
+      }
     } else {
       next(done);
     }
